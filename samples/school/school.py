@@ -13,7 +13,7 @@ import skimage.draw
 
 # Root directory of the project
 ROOT_DIR = os.getcwd()
-if ROOT_DIR.endswith("samples/balloon"):
+if ROOT_DIR.endswith("samples/school"):
     # Go up two levels to the repo root
     ROOT_DIR = os.path.dirname(os.path.dirname(ROOT_DIR))
 
@@ -128,7 +128,7 @@ class SchoolDataset(utils.Dataset):
             one mask per instance.
         class_ids: a 1D array of class IDs of the instance masks.
         """
-        # If not a balloon dataset image, delegate to parent class.
+        # If not a school dataset image, delegate to parent class.
         image_info = self.image_info[image_id]
         if image_info["source"] != "school":
             return super(self.__class__, self).load_mask(image_id)
@@ -160,12 +160,12 @@ def train(model):
     """Train the model."""
     # Training dataset.
     dataset_train = SchoolDataset()
-    dataset_train.load_balloon(args.dataset, "train")
+    dataset_train.load_school(args.dataset, "train")
     dataset_train.prepare()
 
     # Validation dataset
     dataset_val = SchoolDataset()
-    dataset_val.load_balloon(args.dataset, "val")
+    dataset_val.load_school(args.dataset, "val")
     dataset_val.prepare()
 
     # *** This training schedule is an example. Update to your needs ***
@@ -260,13 +260,13 @@ if __name__ == '__main__':
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(
-        description='Train Mask R-CNN to detect balloons.')
+        description='Train Mask R-CNN to detect schools.')
     parser.add_argument("command",
                         metavar="<command>",
                         help="'train' or 'splash'")
     parser.add_argument('--dataset', required=False,
-                        metavar="/path/to/balloon/dataset/",
-                        help='Directory of the Balloon dataset')
+                        metavar="/path/to/school/dataset/",
+                        help='Directory of the school dataset')
     parser.add_argument('--weights', required=True,
                         metavar="/path/to/weights.h5",
                         help="Path to weights .h5 file or 'coco'")
