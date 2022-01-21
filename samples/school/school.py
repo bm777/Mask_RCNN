@@ -51,8 +51,8 @@ class SchoolConfig(Config):
     # Number of training steps per epoch
     STEPS_PER_EPOCH = 100
 
-    # Skip detections with < 90% confidence
-    DETECTION_MIN_CONFIDENCE = 0.9
+    # Skip detections with < 80% confidence
+    DETECTION_MIN_CONFIDENCE = 0.8
 
 
 ############################################################
@@ -89,7 +89,7 @@ class SchoolDataset(utils.Dataset):
         # }
         # We mostly care about the x and y coordinates of each region
         # Note: In VIA 2.0, regions was changed from a dict to a list.
-        annotations = json.load(open(os.path.join(dataset_dir, "coco.json")))
+        annotations = json.load(open(os.path.join(dataset_dir, "vgg.json")))
         annotations = list(annotations.values())  # don't need the dict keys
 
         # The VIA tool saves images in the JSON even if they don't have any
@@ -111,8 +111,9 @@ class SchoolDataset(utils.Dataset):
             # Unfortunately, VIA doesn't include it in JSON, so we must read
             # the image. This is only managable since the dataset is tiny.
             image_path = os.path.join(dataset_dir, a['filename'])
-            image = skimage.io.imread(image_path)
-            height, width = image.shape[:2]
+
+            #image = skimage.io.imread(image_path)
+            height, width = (256, 256)
 
             self.add_image(
                 "school",
@@ -159,6 +160,7 @@ class SchoolDataset(utils.Dataset):
 def train(model):
     """Train the model."""
     # Training dataset.
+
     dataset_train = SchoolDataset()
     dataset_train.load_school(args.dataset, "train")
     dataset_train.prepare()
@@ -172,7 +174,7 @@ def train(model):
     # Since we're using a very small dataset, and starting from
     # COCO trained weights, we don't need to train too long. Also,
     # no need to train all layers, just the heads should do it.
-    print("Training network heads")
+    print("---------Training network heads")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE,
                 epochs=30,
@@ -257,16 +259,28 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
 
 if __name__ == '__main__':
     import argparse
+    import tensorflow as tf
+    #tf.compat.v1.disable_eager_execution()
+
+    gpus = tf.compat.v1.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        # Restrict TensorFlow to only use the first GPU
+        try:
+            tf.compat.v1.config.experimental.set_memory_growth(gpus[0], True)
+
+        except RuntimeError as e:
+            # Visible devices must be set before GPUs have been initialized
+            print(e)
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(
-        description='Train Mask R-CNN to detect schools.')
+        description='Train Mask R-CNN to detect balloons.')
     parser.add_argument("command",
                         metavar="<command>",
                         help="'train' or 'splash'")
     parser.add_argument('--dataset', required=False,
-                        metavar="/path/to/school/dataset/",
-                        help='Directory of the school dataset')
+                        metavar="/path/to/balloon/dataset/",
+                        help='Directory of the Balloon dataset')
     parser.add_argument('--weights', required=True,
                         metavar="/path/to/weights.h5",
                         help="Path to weights .h5 file or 'coco'")
@@ -289,9 +303,9 @@ if __name__ == '__main__':
         assert args.image or args.video,\
                "Provide --image or --video to apply color splash"
 
-    print("Weights: ", args.weights)
-    print("Dataset: ", args.dataset)
-    print("Logs: ", args.logs)
+    print("---------Weights: ", args.weights)
+    print("---------Dataset: ", args.dataset)
+    print("---------Logs: ", args.logs)
 
     # Configurations
     if args.command == "train":
@@ -329,7 +343,7 @@ if __name__ == '__main__':
         weights_path = args.weights
 
     # Load weights
-    print("Loading weights ", weights_path)
+    print("---------Loading weights ", weights_path)
     if args.weights.lower() == "coco":
         # Exclude the last layers because they require a matching
         # number of classes
@@ -337,10 +351,13 @@ if __name__ == '__main__':
             "mrcnn_class_logits", "mrcnn_bbox_fc",
             "mrcnn_bbox", "mrcnn_mask"])
     else:
-        model.load_weights(weights_path, by_name=True)
+        model.load_weights(weights_path, by_name=True, exclude=[
+            "mrcnn_class_logits", "mrcnn_bbox_fc",
+            "mrcnn_bbox", "mrcnn_mask"])
 
     # Train or evaluate
     if args.command == "train":
+
         train(model)
     elif args.command == "splash":
         detect_and_color_splash(model, image_path=args.image,
