@@ -5,6 +5,7 @@ Train on the toy School dataset .
 """
 
 import os
+import cv2
 import sys
 import json
 import datetime
@@ -112,8 +113,8 @@ class SchoolDataset(utils.Dataset):
             # the image. This is only managable since the dataset is tiny.
             image_path = os.path.join(dataset_dir, a['filename'])
 
-            if skimage.io.imread(image_path):
-                image = skimage.io.imread(image_path)
+            if cv2.imread(image_path) is not None:
+                image = cv2.imread(image_path)
                 height, width = image.shape[:2]
 
                 self.add_image(
