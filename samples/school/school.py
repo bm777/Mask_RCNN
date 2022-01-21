@@ -112,15 +112,16 @@ class SchoolDataset(utils.Dataset):
             # the image. This is only managable since the dataset is tiny.
             image_path = os.path.join(dataset_dir, a['filename'])
 
-            #image = skimage.io.imread(image_path)
-            height, width = (256, 256)
+            if skimage.io.imread(image_path):
+                image = skimage.io.imread(image_path)
+                height, width = image.shape[:2]
 
-            self.add_image(
-                "school",
-                image_id=a['filename'],  # use file name as a unique image id
-                path=image_path,
-                width=width, height=height,
-                polygons=polygons)
+                self.add_image(
+                    "school",
+                    image_id=a['filename'],  # use file name as a unique image id
+                    path=image_path,
+                    width=width, height=height,
+                    polygons=polygons)
 
     def load_mask(self, image_id):
         """Generate instance masks for an image.
