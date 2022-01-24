@@ -2801,12 +2801,7 @@ def denorm_boxes_graph(boxes, shape):
 
 ############################################################
 #  Custom Callbacks
-########################model.train(dataset_train, dataset_val,
-            learning_rate=config.LEARNING_RATE,
-            epochs=15,
-            layers='heads',
-            custom_callbacks=[mean_average_precision_callback]
-            )####################################
+############################################################
 
 class MeanAveragePrecisionCallback(Callback):
     def __init__(self, train_model: MaskRCNN, inference_model: MaskRCNN, dataset: utils.Dataset,
