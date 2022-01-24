@@ -33,7 +33,7 @@ except Exception:
 
 setup(
     name='mask-rcnn',
-    version='2.4',
+    version='2.5',
     url='https://github.com/matterport/Mask_RCNN',
     author='Matterport',
     author_email='waleed.abdulla@gmail.com',
