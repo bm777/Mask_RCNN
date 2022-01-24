@@ -44,7 +44,7 @@ class SchoolConfig(Config):
 
     # We use a GPU with 12GB memory, which can fit two images.
     # Adjust down if you use a smaller GPU.
-    IMAGES_PER_GPU = 1
+    IMAGES_PER_GPU = 2
 
     # Number of classes (including background)
     NUM_CLASSES = 1 + 1  # Background + school
@@ -179,7 +179,7 @@ def train(model):
     print("---------Training network heads")
     model.train(dataset_train, dataset_val,
                 learning_rate=config.LEARNING_RATE,
-                epochs=20,
+                epochs=30,
                 layers='heads')
 
 
@@ -264,6 +264,15 @@ if __name__ == '__main__':
     import tensorflow as tf
     #tf.compat.v1.disable_eager_execution()
 
+    gpus = tf.compat.v1.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        # Restrict TensorFlow to only use the first GPU
+        try:
+            tf.compat.v1.config.experimental.set_memory_growth(gpus[0], True)
+
+        except RuntimeError as e:
+            # Visible devices must be set before GPUs have been initialized
+            print(e)
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(
