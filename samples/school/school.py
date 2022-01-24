@@ -162,11 +162,12 @@ class SchoolDataset(utils.Dataset):
 def train(model):
     """Train the model."""
     # Training dataset.
-
+    print("training preparation")
     dataset_train = SchoolDataset()
     dataset_train.load_school(args.dataset, "train")
     dataset_train.prepare()
 
+    print("validation preparation")
     # Validation dataset
     dataset_val = SchoolDataset()
     dataset_val.load_school(args.dataset, "val")
