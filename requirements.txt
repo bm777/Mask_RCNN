@@ -4,7 +4,7 @@ Pillow
 cython
 h5py==2.10.0
 matplotlib
-scikit-image
+scikit-image==0.18.3
 tensorflow
 tensorflow-gpu
 keras
