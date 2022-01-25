@@ -59,6 +59,8 @@ class SchoolConfig(Config):
 ############################################################
 #  Dataset
 ############################################################
+import cv2
+
 
 class SchoolDataset(utils.Dataset):
 
@@ -75,21 +77,6 @@ class SchoolDataset(utils.Dataset):
         dataset_dir = os.path.join(dataset_dir, subset)
 
         # Load annotations
-        # VGG Image Annotator (up to version 1.6) saves each image in the form:
-        # { 'filename': '28503151_5b5b7ec140_b.jpg',
-        #   'regions': {
-        #       '0': {
-        #           'region_attributes': {},
-        #           'shape_attributes': {
-        #               'all_points_x': [...],
-        #               'all_points_y': [...],
-        #               'name': 'polygon'}},
-        #       ... more regions ...
-        #   },
-        #   'size': 100202
-        # }
-        # We mostly care about the x and y coordinates of each region
-        # Note: In VIA 2.0, regions was changed from a dict to a list.
         annotations = json.load(open(os.path.join(dataset_dir, "vgg.json")))
         annotations = list(annotations.values())  # don't need the dict keys
 
@@ -98,31 +85,44 @@ class SchoolDataset(utils.Dataset):
         annotations = [a for a in annotations if a['regions']]
 
         # Add images
+        ii = 0
         for a in annotations:
-            # Get the x, y coordinaets of points of the polygons that make up
-            # the outline of each object instance. These are stores in the
-            # shape_attributes (see json format above)
-            # The if condition is needed to support VIA versions 1.x and 2.x.
+            # Get the x, y coordinaets of points of the polygons that make up.
             if type(a['regions']) is dict:
                 polygons = [r['shape_attributes'] for r in a['regions'].values()]
             else:
-                polygons = [r['shape_attributes'] for r in a['regions']] 
+                polygons = [r['shape_attributes'] for r in a['regions']]
 
-            # load_mask() needs the image size to convert polygons to masks.
-            # Unfortunately, VIA doesn't include it in JSON, so we must read
-            # the image. This is only managable since the dataset is tiny.
+                # load_mask() needs the image size to convert polygons to masks.
             image_path = os.path.join(dataset_dir, a['filename'])
-
             if cv2.imread(image_path) is not None:
-                image = cv2.imread(image_path)
+                # print(image_path)
+                image = skimage.io.imread(image_path)
                 height, width = image.shape[:2]
 
-                self.add_image(
-                    "school",
-                    image_id=a['filename'],  # use file name as a unique image id
-                    path=image_path,
-                    width=width, height=height,
-                    polygons=polygons)
+                #######################
+                # reg = a['regions']["0"]
+                # p = reg['shape_attributes']
+                # mask = np.zeros([height, width, len(polygons)], dtype=np.uint8)
+                # for i, p in enumerate(polygons):
+                #    # Get indexes of pixels inside the polygon and set them to 1
+                #    rr, cc = skimage.draw.polygon(p['all_points_y'], p['all_points_x'], mask.shape)
+                #    print("++++", rr, cc)
+                #    mask[rr, cc, i] = 1
+                #
+                ######################
+
+                if ii < 6400:
+                    self.add_image(
+                        "school",
+                        image_id=a['filename'],  # use file name as a unique image id
+                        path=image_path,
+                        width=width, height=height,
+                        polygons=polygons)
+                ii += 1
+
+            else:
+                print("Issue with t: '{}'".format(image_path))
 
     def load_mask(self, image_id):
         """Generate instance masks for an image.
@@ -131,7 +131,7 @@ class SchoolDataset(utils.Dataset):
             one mask per instance.
         class_ids: a 1D array of class IDs of the instance masks.
         """
-        # If not a school dataset image, delegate to parent class.
+        # If not a balloon dataset image, delegate to parent class.
         image_info = self.image_info[image_id]
         if image_info["source"] != "school":
             return super(self.__class__, self).load_mask(image_id)
@@ -143,7 +143,7 @@ class SchoolDataset(utils.Dataset):
                         dtype=np.uint8)
         for i, p in enumerate(info["polygons"]):
             # Get indexes of pixels inside the polygon and set them to 1
-            rr, cc = skimage.draw.polygon(p['all_points_y'], p['all_points_x'])
+            rr, cc = skimage.draw.polygon(p['all_points_y'], p['all_points_x'], mask.shape)
             mask[rr, cc, i] = 1
 
         # Return mask, and array of class IDs of each instance. Since we have
@@ -157,7 +157,6 @@ class SchoolDataset(utils.Dataset):
             return info["path"]
         else:
             super(self.__class__, self).image_reference(image_id)
-
 
 def train(model):
     """Train the model."""

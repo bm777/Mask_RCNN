@@ -2281,7 +2281,9 @@ class MaskRCNN(object):
         # Data generators
         train_generator = DataGenerator(train_dataset, self.config, shuffle=True,
                                          augmentation=augmentation)
+        print("train datagenerator done")
         val_generator = DataGenerator(val_dataset, self.config, shuffle=True)
+        print("val datagenerator done")
 
         # Create log_dir if it does not exist
         if not os.path.exists(self.log_dir):
@@ -2304,6 +2306,7 @@ class MaskRCNN(object):
         log("Checkpoint Path: {}".format(self.checkpoint_path))
         self.set_trainable(layers)
         self.compile(learning_rate, self.config.LEARNING_MOMENTUM)
+        print("Compiling done")
 
         # Work-around for Windows: Keras fails on Windows when using
         # multiprocessing workers. See discussion here:
@@ -2313,6 +2316,8 @@ class MaskRCNN(object):
         else:
             workers = multiprocessing.cpu_count()
 
+        print("workers = ", workers)
+        print("started fit")
         self.keras_model.fit(
             train_generator,
             initial_epoch=self.epoch,
@@ -2325,6 +2330,7 @@ class MaskRCNN(object):
             workers=workers,
             use_multiprocessing=workers > 1,
         )
+        print("fit done")
         self.epoch = max(self.epoch, epochs)
 
     def mold_inputs(self, images):
