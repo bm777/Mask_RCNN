@@ -75,7 +75,7 @@ class ParallelModel(KM.Model):
                                         self.inner_model.inputs)
                     inputs = [
                         KL.Lambda(lambda s: input_slices[name][i],
-                                  output_shape=lambda s: (None,) + s[1:])(tensor)
+                                  output_shape=lambda s: (None,)+s[1:])(tensor)
                         for name, tensor in zipped_inputs]
                     # Create the model replica and get the outputs
                     outputs = self.inner_model(inputs)
@@ -89,18 +89,16 @@ class ParallelModel(KM.Model):
         with tf.device('/cpu:0'):
             merged = []
             for outputs, name in zip(outputs_all, output_names):
-                # Concatenate or average outputs?
-                # Outputs usually have a batch dimension and we concatenate
-                # across it. If they don't, then the output is likely a loss
-                # or a metric value that gets averaged across the batch.
-                # Keras expects losses and metrics to be scalars.
-                if K.int_shape(outputs[0]) == ():
-                    # Average
-                    m = KL.Lambda(lambda o: tf.add_n(o) / len(outputs), name=name)(outputs)
-                else:
-                    # Concatenate
-                    m = KL.Concatenate(axis=0, name=name)(outputs)
-                merged.append(m)
+                # If outputs are numbers without dimensions, add a batch dim.
+                def add_dim(tensor):
+                    """Add a dimension to tensors that don't have any."""
+                    if K.int_shape(tensor) == ():
+                        return KL.Lambda(lambda t: K.reshape(t, [1, 1]))(tensor)
+                    return tensor
+                outputs = list(map(add_dim, outputs))
+
+                # Concatenate
+                merged.append(KL.Concatenate(axis=0, name=name)(outputs))
         return merged
 
 
@@ -120,10 +118,10 @@ if __name__ == "__main__":
     GPU_COUNT = 2
 
     # Root directory of the project
-    ROOT_DIR = os.path.abspath("../")
+    ROOT_DIR = os.getcwd()
 
     # Directory to save logs and trained model
-    MODEL_DIR = os.path.join(ROOT_DIR, "logs")
+    MODEL_DIR = os.path.join(ROOT_DIR, "logs/parallel")
 
     def build_model(x_train, num_classes):
         # Reset default graph. Keras leaves old ops in the graph,
